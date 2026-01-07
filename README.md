@@ -55,7 +55,8 @@ POST /api/signup
 - `400` : 중복된 이메일 또는 닉네임
 
 **구현 내용**
-- 이메일과 닉네임은 trim() 처리 후 소문자 변환
+- 이메일과 trim() 처리 후 소문자 변환
+- 닉네임은 trim() 처리만 수행
 - 이메일/닉네임 중복 체크 선행
 - 비밀번호는 BCrypt로 암호화하여 저장
 - DB unique 제약조건으로 이중 검증
@@ -88,8 +89,8 @@ GET /api/checkEmail?value=test@example.com
 - `400` : 이미 사용 중인 이메일
 
 **구현 내용**
-- 이메일 공백 및 빈 값 검증
-- DB 조회로 중복 여부 확인
+- 이메일 공백 및 빈 값 검증 (isBlank)
+- trim()+ 소문자 변환 후 DB 조회로 중복 여부 확인
 
 ---
 
@@ -119,8 +120,8 @@ GET /api/checkNickname?value=홍길동
 - `400` : 이미 사용 중인 닉네임
 
 **구현 내용**
-- 닉네임 trim 처리
-- DB 조회로 중복 여부 확인
+- 닉네임 빈 값 검증(isBlank)
+- trim 처리 후 DB 조회로 중복 여부 확인
 
 ---
 
@@ -275,3 +276,248 @@ POST /api/reset
 - 모든 인증 정보는 암호화하여 저장
 
 ---
+
+### 일정 관리
+
+---
+
+#### 일정 등록
+Endpoint
+POST /api/saveschedule
+Headers
+Authorization: Bearer {token}
+Request Body
+json{
+  "title": "회의",
+  "content": "팀 미팅",
+  "start_date": "2026-01-10T09:00:00",
+  "end_date": "2026-01-10T10:00:00",
+  "start_time": "09:00:00",
+  "end_time": "10:00:00",
+  "color": 1
+}
+Response
+json{
+  "s_id": 1,
+  "email": "test@example.com",
+  "title": "회의",
+  "content": "팀 미팅",
+  "start_date": "2026-01-10T09:00:00",
+  "end_date": "2026-01-10T10:00:00",
+  "start_time": "09:00:00",
+  "end_time": "10:00:00",
+  "color": 1
+}
+```
+
+**Status Code**
+- `200` : 일정 등록 성공
+- `401` : 토큰 유효하지 않음
+- `500` : 서버 오류
+
+**구현 내용**
+- JWT 토큰에서 사용자 이메일 추출
+- start_date, end_date, start_time, end_time이 null이면 현재 시간으로 설정
+- 일정 정보를 DB에 저장 후 저장된 엔티티 반환
+
+---
+
+#### 특정 날짜 일정 제목 조회
+
+**Endpoint**
+```
+GET /api/title?date={날짜}
+```
+
+**Headers**
+```
+Authorization: Bearer {token}
+```
+
+**Request**
+```
+GET /api/title?date=2026-01-10
+Response
+json[
+  "회의",
+  "점심 약속",
+  "운동"
+]
+```
+
+**Status Code**
+- `200` : 조회 성공
+- `401` : 토큰 유효하지 않음
+
+**구현 내용**
+- JWT 토큰에서 사용자 이메일 추출
+- 해당 날짜의 00:00:00 ~ 23:59:59 범위로 일정 조회
+- start_date <= dayEnd AND end_date >= dayStart 조건으로 겹치는 일정 검색
+- 일정 제목만 리스트로 반환
+
+---
+
+#### 날짜 범위 일정 조회
+
+**Endpoint**
+```
+GET /api/range?start={시작날짜}&end={종료날짜}
+```
+
+**Headers**
+```
+Authorization: Bearer {token}
+```
+
+**Request**
+```
+GET /api/range?start=2026-01-01&end=2026-01-31
+Response
+json[
+  {
+    "s_id": 1,
+    "email": "test@example.com",
+    "title": "회의",
+    "content": "팀 미팅",
+    "start_date": "2026-01-10T09:00:00",
+    "end_date": "2026-01-10T10:00:00",
+    "start_time": "09:00:00",
+    "end_time": "10:00:00",
+    "color": 1
+  }
+]
+```
+
+**Status Code**
+- `200` : 조회 성공
+- `401` : 토큰 유효하지 않음
+
+**구현 내용**
+- JWT 토큰에서 사용자 이메일 추출
+- 시작일 00:00:00 ~ 종료일 23:59:59 범위로 일정 조회
+- start_date <= rangeEnd AND end_date >= rangeStart 조건으로 겹치는 일정 검색
+- start_date 오름차순 정렬하여 반환
+
+---
+
+#### 일정 상세 조회
+
+**Endpoint**
+```
+GET /api/{s_id}
+```
+
+**Request**
+```
+GET /api/1
+Response
+json{
+  "s_id": 1,
+  "email": "test@example.com",
+  "title": "회의",
+  "content": "팀 미팅",
+  "start_date": "2026-01-10T09:00:00",
+  "end_date": "2026-01-10T10:00:00",
+  "start_time": "09:00:00",
+  "end_time": "10:00:00",
+  "color": 1
+}
+```
+
+**Status Code**
+- `200` : 조회 성공
+- `404` : 일정을 찾을 수 없음
+
+**구현 내용**
+- s_id로 일정 조회
+- 존재하지 않으면 404 반환
+- 인증 없이 조회 가능 (공개 일정)
+
+---
+
+#### 일정 수정
+
+**Endpoint**
+```
+PATCH /api/updateplan/{s_id}
+```
+
+**Headers**
+```
+Authorization: Bearer {token}
+Request Body
+json{
+  "title": "회의 변경",
+  "content": "팀 미팅 시간 변경",
+  "start_date": "2026-01-10T10:00:00",
+  "end_date": "2026-01-10T11:00:00"
+}
+Response
+json{
+  "s_id": 1,
+  "email": "test@example.com",
+  "title": "회의 변경",
+  "content": "팀 미팅 시간 변경",
+  "start_date": "2026-01-10T10:00:00",
+  "end_date": "2026-01-10T11:00:00",
+  "start_time": "09:00:00",
+  "end_time": "10:00:00",
+  "color": 1
+}
+```
+
+**Status Code**
+- `200` : 수정 성공
+- `401` : 토큰 유효하지 않음
+- `403` : 본인 일정이 아님
+- `404` : 일정을 찾을 수 없음
+
+**구현 내용**
+- JWT 토큰에서 사용자 이메일 추출
+- s_id로 일정 조회 후 본인 일정인지 확인
+- 요청 본문에 포함된 필드만 부분 수정 (null이 아닌 값만)
+- @Transactional로 변경 감지 자동 반영
+
+---
+
+#### 일정 삭제
+
+**Endpoint**
+```
+DELETE /api/deleteplan/{s_id}
+```
+
+**Headers**
+```
+Authorization: Bearer {token}
+```
+
+**Request**
+```
+DELETE /api/deleteplan/1
+Response
+json"삭제 완료"
+Status Code
+
+200 : 삭제 성공
+401 : 토큰 유효하지 않음
+403 : 본인 일정이 아님
+404 : 일정을 찾을 수 없음
+
+구현 내용
+
+JWT 토큰에서 사용자 이메일 추출
+s_id로 일정 조회 후 본인 일정인지 확인
+본인 일정만 삭제 가능하도록 권한 검증
+@Transactional로 삭제 처리
+
+
+인증 처리
+
+모든 일정 관리 API는 JWT 토큰 필수 (일정 상세 조회 제외)
+Authorization 헤더에서 Bearer 토큰 추출
+토큰에서 이메일 추출하여 본인 확인
+유효하지 않은 토큰 시 401 Unauthorized 반환
+
+
+
