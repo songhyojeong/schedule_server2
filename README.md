@@ -21,7 +21,6 @@
 -<img width="749" height="700" alt="scheduleApp erd" src="https://github.com/user-attachments/assets/1df532a5-0554-4990-9bb6-b49ceb069033" />
 
 ## API 명세
-
 ### 회원 관리
 
 ---
@@ -63,61 +62,6 @@ POST /api/signup
 
 ---
 
-#### 로그인
-
-**Endpoint**
-```
-POST /api/login
-```
-
-**Request Body**
-...
-장점:
-
-구분선(---)으로 API 분리 → 한눈에 보기 쉬움
-일관된 순서 → Endpoint → Request → Response → Status → 구현
-코드블록 활용 → JSON은 json, URL은  
-간결한 구현 내용 → 핵심만 3-5줄
-
-vs 내가 준 버전:
-
-너무 길고 설명이 산만함
-구분이 덜 명확함
-
-이 구조로 다시 정리해줄까? 훨씬 깔끔해질 거야!응응 다시 정리해줘오후 2:16오케이! 깔끔하게 다시 정리할게!
-
-📡 API 명세
-회원 관리
-
-회원가입
-Endpoint
-POST /api/signup
-Request Body
-json{
-  "email": "test@example.com",
-  "pw": "password123",
-  "nickname": "홍길동"
-}
-Response
-json{
-  "result": true,
-  "message": "회원가입 성공",
-  "data": null
-}
-```
-
-**Status Code**
-- `200` : 회원가입 성공
-- `400` : 중복된 이메일 또는 닉네임
-
-**구현 내용**
-- 이메일과 닉네임은 trim() 처리 후 소문자 변환
-- 이메일/닉네임 중복 체크 선행
-- 비밀번호는 BCrypt로 암호화하여 저장
-- DB unique 제약조건으로 이중 검증
-
----
-
 #### 이메일 중복 체크
 
 **Endpoint**
@@ -128,8 +72,11 @@ GET /api/checkEmail?value={email}
 **Request**
 ```
 GET /api/checkEmail?value=test@example.com
-Response
-json{
+```
+
+**Response**
+```json
+{
   "result": true,
   "message": "사용 가능한 이메일입니다.",
   "data": null
@@ -156,8 +103,11 @@ GET /api/checkNickname?value={nickname}
 **Request**
 ```
 GET /api/checkNickname?value=홍길동
-Response
-json{
+```
+
+**Response**
+```json
+{
   "result": true,
   "message": "사용 가능한 닉네임입니다.",
   "data": null
@@ -179,13 +129,19 @@ json{
 **Endpoint**
 ```
 POST /api/login
-Request Body
-json{
+```
+
+**Request Body**
+```json
+{
   "email": "test@example.com",
   "pw": "password123"
 }
-Response
-json{
+```
+
+**Response**
+```json
+{
   "result": true,
   "message": "로그인 성공",
   "data": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -209,12 +165,18 @@ json{
 **Endpoint**
 ```
 POST /api/forgot
-Request Body
-json{
+```
+
+**Request Body**
+```json
+{
   "email": "test@example.com"
 }
-Response
-json{
+```
+
+**Response**
+```json
+{
   "result": true,
   "message": "해당 이메일로 인증코드를 전송했습니다.",
   "data": null
@@ -238,13 +200,19 @@ json{
 **Endpoint**
 ```
 POST /api/verify
-Request Body
-json{
+```
+
+**Request Body**
+```json
+{
   "email": "test@example.com",
   "code": "123456"
 }
-Response
-json{
+```
+
+**Response**
+```json
+{
   "result": true,
   "message": "인증에 성공했습니다.",
   "data": null
@@ -269,51 +237,41 @@ json{
 **Endpoint**
 ```
 POST /api/reset
-Request Body
-json{
+```
+
+**Request Body**
+```json
+{
   "email": "test@example.com",
   "code": "123456",
   "pw": "newPassword123"
 }
-Response
-json{
+```
+
+**Response**
+```json
+{
   "result": true,
   "message": "비밀번호가 변경되었습니다.",
   "data": null
 }
-Status Code
+```
 
-200 : 비밀번호 변경 성공
-400 : 코드 불일치 또는 사용자 없음
+**Status Code**
+- `200` : 비밀번호 변경 성공
+- `400` : 코드 불일치 또는 사용자 없음
 
-구현 내용
+**구현 내용**
+- 코드 검증 (만료시간, 시도횟수, 일치여부)
+- 새 비밀번호를 BCrypt로 암호화하여 업데이트
+- 재설정 요청 정보 DB에서 삭제 (1회용)
 
-코드 검증 (만료시간, 시도횟수, 일치여부)
-새 비밀번호를 BCrypt로 암호화하여 업데이트
-재설정 요청 정보 DB에서 삭제 (1회용)
+---
 
+**보안 처리**
+- 비밀번호: BCrypt 단방향 해싱
+- JWT: HS256 알고리즘, 1시간 만료
+- OTP: 6자리, 10분 만료, 5회 시도 제한
+- 모든 인증 정보는 암호화하여 저장
 
-보안 처리
-
-비밀번호: BCrypt 단방향 해싱
-JWT: HS256 알고리즘, 1시간 만료
-OTP: 6자리, 10분 만료, 5회 시도 제한
-모든 인증 정보는 암호화하여 저장
-
-
-### 일정 관리
-(다음에 추가)
-
-### 친구 관리
-(다음에 추가)
-
-## 🏗 AWS 아키텍처
-(나중에 추가)
-
-## 💡 트러블슈팅
-(나중에 추가)
-
-## 🚀 실행 방법
-(나중에 추가)
-지금까지 완성된 거:
-
+---
