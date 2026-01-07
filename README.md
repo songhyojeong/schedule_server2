@@ -282,12 +282,20 @@ POST /api/reset
 ---
 
 #### 일정 등록
-Endpoint
+
+**Endpoint**
+```
 POST /api/saveschedule
-Headers
+```
+
+**Headers**
+```
 Authorization: Bearer {token}
-Request Body
-json{
+```
+
+**Request Body**
+```json
+{
   "title": "회의",
   "content": "팀 미팅",
   "start_date": "2026-01-10T09:00:00",
@@ -296,8 +304,11 @@ json{
   "end_time": "10:00:00",
   "color": 1
 }
-Response
-json{
+```
+
+**Response**
+```json
+{
   "s_id": 1,
   "email": "test@example.com",
   "title": "회의",
@@ -337,8 +348,11 @@ Authorization: Bearer {token}
 **Request**
 ```
 GET /api/title?date=2026-01-10
-Response
-json[
+```
+
+**Response**
+```json
+[
   "회의",
   "점심 약속",
   "운동"
@@ -372,8 +386,11 @@ Authorization: Bearer {token}
 **Request**
 ```
 GET /api/range?start=2026-01-01&end=2026-01-31
-Response
-json[
+```
+
+**Response**
+```json
+[
   {
     "s_id": 1,
     "email": "test@example.com",
@@ -410,8 +427,11 @@ GET /api/{s_id}
 **Request**
 ```
 GET /api/1
-Response
-json{
+```
+
+**Response**
+```json
+{
   "s_id": 1,
   "email": "test@example.com",
   "title": "회의",
@@ -431,7 +451,7 @@ json{
 **구현 내용**
 - s_id로 일정 조회
 - 존재하지 않으면 404 반환
-- 인증 없이 조회 가능 (공개 일정)
+- 인증 없이 조회 가능
 
 ---
 
@@ -445,15 +465,21 @@ PATCH /api/updateplan/{s_id}
 **Headers**
 ```
 Authorization: Bearer {token}
-Request Body
-json{
+```
+
+**Request Body**
+```json
+{
   "title": "회의 변경",
   "content": "팀 미팅 시간 변경",
   "start_date": "2026-01-10T10:00:00",
   "end_date": "2026-01-10T11:00:00"
 }
-Response
-json{
+```
+
+**Response**
+```json
+{
   "s_id": 1,
   "email": "test@example.com",
   "title": "회의 변경",
@@ -495,29 +521,35 @@ Authorization: Bearer {token}
 **Request**
 ```
 DELETE /api/deleteplan/1
-Response
-json"삭제 완료"
-Status Code
+```
 
-200 : 삭제 성공
-401 : 토큰 유효하지 않음
-403 : 본인 일정이 아님
-404 : 일정을 찾을 수 없음
+**Response**
+```json
+"삭제 완료"
+```
 
-구현 내용
+**Status Code**
+- `200` : 삭제 성공
+- `401` : 토큰 유효하지 않음
+- `403` : 본인 일정이 아님
+- `404` : 일정을 찾을 수 없음
 
-JWT 토큰에서 사용자 이메일 추출
-s_id로 일정 조회 후 본인 일정인지 확인
-본인 일정만 삭제 가능하도록 권한 검증
-@Transactional로 삭제 처리
+**구현 내용**
+- JWT 토큰에서 사용자 이메일 추출
+- s_id로 일정 조회 후 본인 일정인지 확인
+- 본인 일정만 삭제 가능하도록 권한 검증
+- @Transactional로 삭제 처리
 
+---
 
-인증 처리
+**인증 처리**
+- 모든 일정 관리 API는 JWT 토큰 필수 (일정 상세 조회 제외)
+- Authorization 헤더에서 Bearer 토큰 추출
+- 토큰에서 이메일 추출하여 본인 확인
+- 유효하지 않은 토큰 시 401 Unauthorized 반환
 
-모든 일정 관리 API는 JWT 토큰 필수 (일정 상세 조회 제외)
-Authorization 헤더에서 Bearer 토큰 추출
-토큰에서 이메일 추출하여 본인 확인
-유효하지 않은 토큰 시 401 Unauthorized 반환
+---
+
 
 
 
