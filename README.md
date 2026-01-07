@@ -20,7 +20,7 @@
 ## ERD
 -<img width="749" height="700" alt="scheduleApp erd" src="https://github.com/user-attachments/assets/1df532a5-0554-4990-9bb6-b49ceb069033" />
 
-## 📡 API 명세
+## API 명세
 
 ### 회원 관리
 
@@ -33,6 +33,7 @@ json{
   "pw": "password123",
   "nickname": "홍길동"
 }
+```
 Response
 json{
   "result": true,
