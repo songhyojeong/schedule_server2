@@ -385,7 +385,7 @@ Authorization: Bearer {token}
 
 **Request**
 ```
-GET /api/range?start=2026-01-01&end=2026-01-31
+GET /api/range?start=2026-01-11&end=2026-01-11
 ```
 
 **Response**
@@ -396,10 +396,10 @@ GET /api/range?start=2026-01-01&end=2026-01-31
     "email": "test@example.com",
     "title": "회의",
     "content": "팀 미팅",
-    "start_date": "2026-01-10T09:00:00",
-    "end_date": "2026-01-10T10:00:00",
-    "start_time": "09:00:00",
-    "end_time": "10:00:00",
+    "start_date": "2026-01-10T00:00:00",
+    "end_date": "2026-01-12T123:59:59",
+    "start_time": "00:00:00",
+    "end_time": "23:59:59",
     "color": 1
   }
 ]
@@ -413,6 +413,7 @@ GET /api/range?start=2026-01-01&end=2026-01-31
 - JWT 토큰에서 사용자 이메일 추출
 - 시작일 00:00:00 ~ 종료일 23:59:59 범위로 일정 조회
 - start_date <= rangeEnd AND end_date >= rangeStart 조건으로 겹치는 일정 검색
+- (예:1/10~1/12일정은 1/11 조회 시에도 표시)
 - start_date 오름차순 정렬하여 반환
 
 ---
@@ -550,6 +551,257 @@ DELETE /api/deleteplan/1
 
 ---
 
+### 친구 관리
 
+---
 
+#### 친구 검색
 
+**Endpoint**
+```
+GET /api/searchfriend?q={검색어}
+```
+
+**Headers**
+```
+Authorization: Bearer {token}
+```
+
+**Request**
+```
+GET /api/searchfriend?q=test
+```
+
+**Response**
+```json
+[
+  {
+    "email": "test@example.com",
+    "nickname": "홍길동"
+  },
+  {
+    "email": "test2@example.com",
+    "nickname": "김철수"
+  }
+]
+```
+
+**Status Code**
+- `200` : 검색 성공
+- `401` : 토큰 유효하지 않음
+
+**구현 내용**
+- JWT 토큰에서 사용자 이메일 추출
+- 검색어가 포함된 이메일을 가진 사용자 최대 10명 조회
+- 본인과 이미 친구인 사람은 제외
+- 이메일과 닉네임만 반환
+
+---
+
+#### 친구 추가
+
+**Endpoint**
+```
+POST /api/addfriend
+```
+
+**Headers**
+```
+Authorization: Bearer {token}
+```
+
+**Request Body**
+```json
+{
+  "targetEmail": "friend@example.com"
+}
+```
+
+**Response**
+```json
+"친구추가 완료"
+```
+
+**Status Code**
+- `200` : 친구 추가 성공
+- `400` : 본인 추가 시도 또는 존재하지 않는 사용자
+- `401` : 토큰 유효하지 않음
+- `409` : 이미 친구 관계
+
+**구현 내용**
+- JWT 토큰에서 사용자 이메일 추출
+- 본인을 친구로 추가하는 것 방지
+- 대상 사용자 존재 여부 확인
+- 이미 친구 관계인지 검증
+- 두 이메일을 정렬하여 중복 방지 (A-B와 B-A를 같은 관계로 처리)
+
+---
+
+#### 친구 목록 조회
+
+**Endpoint**
+```
+GET /api/listfriend
+```
+
+**Headers**
+```
+Authorization: Bearer {token}
+```
+
+**Response**
+```json
+[
+  {
+    "email": "friend1@example.com",
+    "nickname": "친구1"
+  },
+  {
+    "email": "friend2@example.com",
+    "nickname": "친구2"
+  }
+]
+```
+
+**Status Code**
+- `200` : 조회 성공
+- `401` : 토큰 유효하지 않음
+
+**구현 내용**
+- JWT 토큰에서 사용자 이메일 추출
+- 친구 테이블에서 나와 연결된 모든 이메일 조회
+- 사용자 정보(이메일, 닉네임) 조회하여 반환
+
+---
+
+#### 친구 삭제
+
+**Endpoint**
+```
+DELETE /api/deletefriend
+```
+
+**Headers**
+```
+Authorization: Bearer {token}
+```
+
+**Request Body**
+```json
+{
+  "targetEmail": "friend@example.com"
+}
+```
+
+**Response**
+```json
+"친구 삭제 완료"
+```
+
+**Status Code**
+- `200` : 삭제 성공
+- `401` : 토큰 유효하지 않음
+
+**구현 내용**
+- JWT 토큰에서 사용자 이메일 추출
+- 본인을 삭제 대상으로 하면 무시
+- 친구 관계 양방향 모두 삭제 (A-B, B-A 순서 무관)
+
+---
+
+#### 친구 월별 일정 조회
+
+**Endpoint**
+```
+GET /api/friend/calendar?friendEmail={친구이메일}&year={년도}&month={월}
+```
+
+**Headers**
+```
+Authorization: Bearer {token}
+```
+
+**Request**
+```
+GET /api/friend/calendar?friendEmail=friend@example.com&year=2026&month=1
+```
+
+**Response**
+```json
+[
+  {
+    "s_id": 1,
+    "email": "friend@example.com",
+    "title": "회의",
+    "content": "팀 미팅",
+    "start_date": "2026-01-10T09:00:00",
+    "end_date": "2026-01-10T10:00:00",
+    "start_time": "09:00:00",
+    "end_time": "10:00:00",
+    "color": 1
+  }
+]
+```
+
+**Status Code**
+- `200` : 조회 성공
+- `401` : 토큰 유효하지 않음
+- `403` : 친구 관계가 아님
+- `500` : 서버 오류
+
+**구현 내용**
+- JWT 토큰에서 사용자 이메일 추출
+- 본인 일정이거나 친구 관계인 경우만 조회 가능
+- 해당 월의 1일 00:00:00 ~ 말일 23:59:59 범위로 일정 조회
+- 친구가 아닌 경우 403 Forbidden 반환
+
+---
+
+**친구 관계 관리**
+- 친구 관계는 양방향으로 저장 (A-B 관계 저장 시 B-A도 동일하게 처리)
+- 두 이메일을 정렬하여 저장함으로써 중복 방지
+- 친구 삭제 시 양방향 모두 삭제
+
+---
+## AWS 아키텍처
+
+### 인프라 구성
+
+**EC2**
+- 인스턴스 타입: t3.micro
+- 리전: ap-northeast-2 (서울)
+- 퍼블릭 IP: 15.164.147.189
+- Spring Boot 애플리케이션 배포 (포트 8080)
+
+**RDS**
+- MySQL/Aurora
+- 포트: 3306
+- EC2에서만 접근 가능
+
+**보안 그룹**
+- HTTP (80), HTTPS (443): 웹 접속
+- Custom TCP (8080): Spring Boot API
+- SSH (22): 서버 관리
+- MySQL (3306): DB 연결
+
+### 배포 방식
+
+1. Spring Boot 프로젝트 빌드
+```bash
+   ./gradlew build
+```
+
+2. EC2에 JAR 파일 업로드
+```bash
+   scp -i key.pem build/libs/app.jar ec2-user@15.164.147.189:~/
+```
+
+3. EC2에서 실행
+```bash
+   java -jar app.jar
+```
+
+### 네트워크 구성
+```
+클라이언트 → EC2 (Spring Boot) → RDS (MySQL)
+```
