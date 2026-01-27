@@ -2,15 +2,12 @@ package com.schedule.user;
 
 import java.time.LocalDateTime;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import com.schedule.user.dto.LoginDTO;
-import com.schedule.user.dto.ResponseDTO;
 import com.schedule.user.dto.UserDTO;
 import com.schedule.user.entity.ForgetPwEntity;
 import com.schedule.user.entity.UserEntity;
@@ -49,50 +46,46 @@ public class UserService {
 
 
     // 회원가입
-    public ResponseDTO<?> signup(UserDTO userDto) {
+    public void signup(UserDTO userDto) {
 
         String email = userDto.getEmail().trim().toLowerCase();
         String pw = userDto.getPw();
         String nickname = userDto.getNickname().trim();
 
         if (userRepository.existsById(email)) {
-            return ResponseDTO.setFailed("중복된 이메일");
+            throw new IllegalStateException("중복된 이메일");
         }
 
         if (userRepository.existsByNickname(nickname)) {
-            return ResponseDTO.setFailed("중복된 닉네임");
+        	throw new IllegalStateException("중복된 닉네임");
         }
 
         // 비밀번호 암호화
         userDto.setPw(passwordEncoder.encode(pw));
 
-        try {
-            UserEntity user = new UserEntity(userDto);
-            userRepository.save(user);
-        } catch (Exception e) {
-            return ResponseDTO.setFailed("데이터베이스 처리 중 오류발생");
-        }
-
-        return ResponseDTO.setSuccess("회원가입 성공");
+       UserEntity user = new UserEntity(userDto);
+       userRepository.save(user);
     }
 
 
     // 로그인
-    public ResponseDTO<?> login(LoginDTO loginDto) {
+    public String login(LoginDTO loginDto) {
 
         String email = loginDto.getEmail();
         String pw = loginDto.getPw();
 
-        UserEntity userEntity = userRepository.findByEmail(email).orElse(null);
+        UserEntity userEntity = userRepository.findByEmail(email)
+        		.orElseThrow(() -> new IllegalArgumentException("이메일 또는 비밀번호 불일치"));
 
-        if (userEntity == null || !passwordEncoder.matches(pw, userEntity.getPw())) {
-            return ResponseDTO.setFailed("이메일 또는 비밀번호 불일치");
-        }
+        if(!passwordEncoder.matches(pw, userEntity.getPw())) {
+        	throw new IllegalArgumentException("이메일 또는 비밀번호 불일치");
+        	}
 
         int exprTime = 3600;
-        String token = tokenProvider.createJwt(userEntity.getEmail(), exprTime);
+        return tokenProvider.createJwt(userEntity.getEmail(), exprTime);
 
-        return ResponseDTO.setSuccessData("로그인 성공", token);
+
+
     }
 
 
@@ -136,18 +129,18 @@ public class UserService {
     private void validateCode(ForgetPwEntity fge, String code) {
     	if (fge.getExpiresAt().isBefore(LocalDateTime.now())) {
             forgetPwRepo.delete(fge);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "코드 만료");
+            throw new IllegalStateException("코드가 만료되었습니다.");
         }
 
         if (fge.getAttempts() >= MAX_ATTEMPTS) {
             forgetPwRepo.delete(fge);
-            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "시도 횟수 초과");
+            throw new IllegalStateException("시도 횟수를 초과했습니다.");
         }
 
         fge.setAttempts(fge.getAttempts() + 1);
 
         if (!passwordEncoder.matches(code, fge.getCodeHash())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "코드가 일치하지 않음");
+            throw new IllegalStateException("인증코드가 일치하지 않습니다.");
         }
     }//validateCode
 
@@ -156,7 +149,7 @@ public class UserService {
     public void verify(String email, String code) {
 
     	 ForgetPwEntity fge = forgetPwRepo.findByEmail(email)
-    	            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "코드 유효하지 않음"));
+    	            .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 인증 요청입니다."));
 
     	    validateCode(fge, code);
     }
@@ -167,17 +160,17 @@ public class UserService {
     public void reset(String email, String code, String pw) {
 
     	ForgetPwEntity fge = forgetPwRepo.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "코드 유효하지 않음"));
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 인증 요청입니다."));
 
         validateCode(fge, code);
 
         UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "사용자를 찾을 수 없음"));
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
         user.setPw(passwordEncoder.encode(pw));
         userRepository.save(user);
 
-        forgetPwRepo.delete(fge);    
+        forgetPwRepo.delete(fge);
         }
 
 }

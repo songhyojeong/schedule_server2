@@ -22,8 +22,8 @@ import com.nimbusds.jwt.SignedJWT;
 public class TokenProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(TokenProvider.class);
-   
-    @Value("${jwt.seret}")
+
+    @Value("${JWT_SECRET}")
     private String SECURITY_KEY;
 
     // JWT 생성 메서드

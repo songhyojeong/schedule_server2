@@ -1,6 +1,6 @@
 package com.schedule.friend.entity;
 
-import com.schedule.friend.dto.FriendDTO;
+
 
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
@@ -27,10 +27,6 @@ public class FriendEntity {
 	@EmbeddedId
     private FriendId friendId;
 
-
-	public FriendEntity(FriendDTO friendDto) {
-		this.friendId = new FriendId(friendDto.getEmail(),friendDto.getF_email());
-	}
 
 	// 편의 생성자
     public static FriendEntity of(String email, String fEmail) {

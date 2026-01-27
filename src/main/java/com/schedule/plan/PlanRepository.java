@@ -2,7 +2,6 @@ package com.schedule.plan;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -40,8 +39,6 @@ public interface PlanRepository extends JpaRepository<PlanEntity,Integer> {
 			@Param("rangeStart") LocalDateTime rangeStart,
 			@Param("rangeEnd") LocalDateTime rangeEnd
 			);
-	
-	Optional<PlanEntity> findById(int s_id);
 
 
 }

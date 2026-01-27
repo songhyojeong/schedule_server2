@@ -2,18 +2,15 @@ package com.schedule.friend;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import com.schedule.friend.dto.UserSummary;
 import com.schedule.friend.entity.FriendEntity;
-import com.schedule.plan.PlanEntity;
+import com.schedule.plan.PlanDTO;
 import com.schedule.plan.PlanRepository;
 import com.schedule.user.repository.UserRepository;
 import com.schedule.user.security.TokenProvider;
@@ -33,16 +30,16 @@ public class FriendService {
 
 	//토큰 추출
 	private String emailFromAuth(String token) {
-		
+
 		if (token == null || token.isBlank()) {
-	        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "토큰 없음");
+	        throw new IllegalArgumentException("토큰이 없습니다");
 	    }
-		
+
 		String jwt = token.startsWith("Bearer ") ? token.substring(7) : token;
 		String email = tokenProvider.validateJwt(jwt);
 
 		if (email == null) {
-			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰");
+			throw new IllegalArgumentException("유효하지 않은 토큰입니다");
 		}
 		return email;
 	}//emailFromAuth
@@ -62,7 +59,7 @@ public class FriendService {
 				.toList();
 
 	}//searchCandidates
-	
+
 	//친구 추가(본인 제외)
 	@Transactional
 	public void addfriend(String token,String targetEmail) {
@@ -80,7 +77,7 @@ public class FriendService {
         String lo = (Comparator.<String>naturalOrder()
                 .compare(me.toLowerCase(), targetEmail.toLowerCase()) <= 0) ? me : targetEmail;
         String hi = lo.equals(me) ? targetEmail : me;
-        
+
         //친구 검증
         if (friendRepository.existsPair(lo, hi)) {
             throw new IllegalStateException("이미 친구입니다.");
@@ -88,7 +85,7 @@ public class FriendService {
 
         // 저장 (정렬은 위에서 보정, 트리거 있으면 역순으로 넣어도 보정됨)
         friendRepository.save(FriendEntity.of(lo, hi));
-        
+
 	} //addfriend
 
 	//친구 목록
@@ -108,34 +105,39 @@ public class FriendService {
 	public void removeFriend(String token, String targetEmail) {
 		String me = emailFromAuth(token);
 
-		if(me.equalsIgnoreCase(targetEmail)) return;
+		if(me.equalsIgnoreCase(targetEmail)) {
+			return;
+		}
 
 		friendRepository.deletePair(me, targetEmail);
 	}//removeFriend
 
-	
+
 	//두 사용자가 친구인지 판단
 	private static boolean isFriend(String a,String b, FriendRepository repo) {
 		String A = a.trim().toLowerCase();
 		String B = b.trim().toLowerCase();
 		return repo.existsAnyDirection(A, B);
 	}//isFriend
-	
+
 	//친구 월별 일정 조회
 	@Transactional(readOnly = true)
-	public List<PlanEntity> getMonthly(String token,String friendEmail,int year,int month){
+	public List<PlanDTO> getMonthly(String token,String friendEmail,int year,int month){
 		String me =emailFromAuth(token);
-		
+
 		//본인 아니면 친구 여부 확인(비친구 403)
 		if (!me.equalsIgnoreCase(friendEmail) && !isFriend(me, friendEmail, friendRepository)) {
-			throw new ResponseStatusException(HttpStatus.FORBIDDEN,"친구만 열람할 수 있습니다.");
+			throw new IllegalStateException("친구만 열람할 수 있습니다");
 		}
-		
+
 		LocalDate first = LocalDate.of(year,month,1);
 		LocalDate last = first.withDayOfMonth(first.lengthOfMonth());
 		LocalDateTime rangeStart = first.atStartOfDay();
 		LocalDateTime rangeEnd = last.atTime(23,59,59);
-		
-		return planRepository.findPlansOverlapping(friendEmail, rangeStart,rangeEnd);
+
+		return planRepository.findPlansOverlapping(friendEmail, rangeStart,rangeEnd)
+				.stream()
+				.map(PlanDTO::new)
+				.toList();
 	}//getMonthly
 }

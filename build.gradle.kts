@@ -57,8 +57,7 @@ annotationProcessor("org.projectlombok:lombok")
 developmentOnly("org.springframework.boot:spring-boot-devtools")
 testImplementation("org.springframework.boot:spring-boot-starter-test")
 testImplementation("org.springframework.security:spring-security-test")
-testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-	
+testRuntimeOnly("org.junit.platform:junit-platform-launcher")	
 }
 
 tasks.withType<Test> {

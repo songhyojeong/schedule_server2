@@ -9,10 +9,6 @@ import com.schedule.user.entity.UserEntity;
 
 public interface UserRepository extends JpaRepository<UserEntity, String>{
 
-	//로그인 용(email + pw 모두 일치하는 유저 존재 여부)
-	public boolean existsByEmailAndPw(String email,String pw);
-
-
 	//로그인 or 회원 조회 용(email로 유저 찾기)
 	Optional<UserEntity> findByEmail(String email);
 

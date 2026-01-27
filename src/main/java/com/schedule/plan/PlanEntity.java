@@ -46,7 +46,7 @@ public class PlanEntity {
 
     @Column(name = "end_time")
     private LocalTime end_time;
-    
+
     @Column
     private Integer color;
 
