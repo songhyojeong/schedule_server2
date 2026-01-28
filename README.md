@@ -21,11 +21,31 @@
 -<img width="749" height="700" alt="scheduleApp erd" src="https://github.com/user-attachments/assets/1df532a5-0554-4990-9bb6-b49ceb069033" />
 
 ## API 명세
-### 회원 관리
+## API 명세
+
+### 공통 응답 형식
+
+모든 API는 다음과 같은 공통 응답 형식을 사용합니다.
+```json
+{
+  "result": true,
+  "message": "성공 메시지",
+  "data": null
+}
+```
+
+**응답 필드:**
+- `result`: 성공 여부 (true/false)
+- `message`: 응답 메시지
+- `data`: 응답 데이터 (없으면 null)
 
 ---
 
-#### 회원가입
+### 1. 회원 관리 (User)
+
+---
+
+#### 1.1 회원가입
 
 **Endpoint**
 ```
@@ -35,13 +55,13 @@ POST /api/signup
 **Request Body**
 ```json
 {
-  "email": "test@example.com",
+  "email": "user@example.com",
   "pw": "password123",
-  "nickname": "홍길동"
+  "nickname": "사용자"
 }
 ```
 
-**Response**
+**Response (성공)**
 ```json
 {
   "result": true,
@@ -50,20 +70,39 @@ POST /api/signup
 }
 ```
 
+**Response (실패 - 이메일 중복)**
+```json
+{
+  "result": false,
+  "message": "중복된 이메일",
+  "data": null
+}
+```
+
+**Response (실패 - 닉네임 중복)**
+```json
+{
+  "result": false,
+  "message": "중복된 닉네임",
+  "data": null
+}
+```
+
 **Status Code**
-- `200` : 회원가입 성공
-- `400` : 중복된 이메일 또는 닉네임
+- `200`: 회원가입 성공
+- `409`: 중복된 이메일 또는 닉네임
 
 **구현 내용**
-- 이메일과 trim() 처리 후 소문자 변환
+- 이메일은 trim() 처리 후 소문자 변환
 - 닉네임은 trim() 처리만 수행
 - 이메일/닉네임 중복 체크 선행
 - 비밀번호는 BCrypt로 암호화하여 저장
 - DB unique 제약조건으로 이중 검증
+- GlobalExceptionHandler가 예외를 자동으로 ResponseDTO 형식으로 변환
 
 ---
 
-#### 이메일 중복 체크
+#### 1.2 이메일 중복 확인
 
 **Endpoint**
 ```
@@ -72,10 +111,10 @@ GET /api/checkEmail?value={email}
 
 **Request**
 ```
-GET /api/checkEmail?value=test@example.com
+GET /api/checkEmail?value=user@example.com
 ```
 
-**Response**
+**Response (사용 가능)**
 ```json
 {
   "result": true,
@@ -84,17 +123,27 @@ GET /api/checkEmail?value=test@example.com
 }
 ```
 
+**Response (사용 불가)**
+```json
+{
+  "result": false,
+  "message": "이미 사용중인 이메일입니다.",
+  "data": null
+}
+```
+
 **Status Code**
-- `200` : 사용 가능한 이메일
-- `400` : 이미 사용 중인 이메일
+- `200`: 사용 가능한 이메일
+- `400`: 이메일이 비어있음 또는 이미 사용 중
 
 **구현 내용**
 - 이메일 공백 및 빈 값 검증 (isBlank)
-- trim()+ 소문자 변환 후 DB 조회로 중복 여부 확인
+- trim() + 소문자 변환 후 DB 조회로 중복 여부 확인
+- Controller에서 직접 검증 후 ResponseDTO 반환
 
 ---
 
-#### 닉네임 중복 체크
+#### 1.3 닉네임 중복 확인
 
 **Endpoint**
 ```
@@ -103,10 +152,10 @@ GET /api/checkNickname?value={nickname}
 
 **Request**
 ```
-GET /api/checkNickname?value=홍길동
+GET /api/checkNickname?value=사용자
 ```
 
-**Response**
+**Response (사용 가능)**
 ```json
 {
   "result": true,
@@ -115,17 +164,27 @@ GET /api/checkNickname?value=홍길동
 }
 ```
 
+**Response (사용 불가)**
+```json
+{
+  "result": false,
+  "message": "이미 사용중인 닉네임입니다.",
+  "data": null
+}
+```
+
 **Status Code**
-- `200` : 사용 가능한 닉네임
-- `400` : 이미 사용 중인 닉네임
+- `200`: 사용 가능한 닉네임
+- `400`: 닉네임이 비어있음 또는 이미 사용 중
 
 **구현 내용**
-- 닉네임 빈 값 검증(isBlank)
-- trim 처리 후 DB 조회로 중복 여부 확인
+- 닉네임 빈 값 검증 (isBlank)
+- trim() 처리 후 DB 조회로 중복 여부 확인
+- Controller에서 직접 검증 후 ResponseDTO 반환
 
 ---
 
-#### 로그인
+#### 1.4 로그인
 
 **Endpoint**
 ```
@@ -135,12 +194,12 @@ POST /api/login
 **Request Body**
 ```json
 {
-  "email": "test@example.com",
+  "email": "user@example.com",
   "pw": "password123"
 }
 ```
 
-**Response**
+**Response (성공)**
 ```json
 {
   "result": true,
@@ -149,19 +208,29 @@ POST /api/login
 }
 ```
 
+**Response (실패)**
+```json
+{
+  "result": false,
+  "message": "이메일 또는 비밀번호 불일치",
+  "data": null
+}
+```
+
 **Status Code**
-- `200` : 로그인 성공 (JWT 토큰 반환)
-- `400` : 이메일 또는 비밀번호 불일치
+- `200`: 로그인 성공 (JWT 토큰 반환)
+- `400`: 이메일 또는 비밀번호 불일치
 
 **구현 내용**
 - 이메일로 사용자 조회 후 비밀번호 검증
 - PasswordEncoder(BCrypt)로 비밀번호 매칭
 - JWT 토큰 생성 (HS256 알고리즘, 만료시간 1시간)
 - 생성된 토큰을 data 필드에 담아 반환
+- 보안을 위해 이메일/비밀번호 오류 메시지 통일
 
 ---
 
-#### 비밀번호 재설정 요청
+#### 1.5 비밀번호 재설정 요청
 
 **Endpoint**
 ```
@@ -171,7 +240,7 @@ POST /api/forgot
 **Request Body**
 ```json
 {
-  "email": "test@example.com"
+  "email": "user@example.com"
 }
 ```
 
@@ -185,7 +254,7 @@ POST /api/forgot
 ```
 
 **Status Code**
-- `200` : 인증코드 전송 성공
+- `200`: 인증코드 전송 성공
 
 **구현 내용**
 - 6자리 랜덤 OTP 생성 (SecureRandom)
@@ -193,10 +262,11 @@ POST /api/forgot
 - 기존 재설정 요청 삭제 후 새로 생성
 - 만료시간 10분, 최대 시도 횟수 5회 설정
 - JavaMailSender로 이메일 전송
+- 존재하지 않는 이메일이어도 동일한 응답 반환 (보안)
 
 ---
 
-#### 인증코드 검증
+#### 1.6 인증코드 검증
 
 **Endpoint**
 ```
@@ -206,12 +276,12 @@ POST /api/verify
 **Request Body**
 ```json
 {
-  "email": "test@example.com",
+  "email": "user@example.com",
   "code": "123456"
 }
 ```
 
-**Response**
+**Response (성공)**
 ```json
 {
   "result": true,
@@ -220,20 +290,48 @@ POST /api/verify
 }
 ```
 
+**Response (실패 - 코드 불일치)**
+```json
+{
+  "result": false,
+  "message": "인증코드가 일치하지 않습니다.",
+  "data": null
+}
+```
+
+**Response (실패 - 만료)**
+```json
+{
+  "result": false,
+  "message": "코드가 만료되었습니다.",
+  "data": null
+}
+```
+
+**Response (실패 - 시도 초과)**
+```json
+{
+  "result": false,
+  "message": "시도 횟수를 초과했습니다.",
+  "data": null
+}
+```
+
 **Status Code**
-- `200` : 인증 성공
-- `400` : 코드 불일치 또는 만료
-- `429` : 시도 횟수 초과 (5회)
+- `200`: 인증 성공
+- `400`: 유효하지 않은 요청
+- `409`: 코드 불일치, 만료, 시도 횟수 초과
 
 **구현 내용**
 - 만료시간 검증 (10분 초과 시 삭제 및 실패)
 - 시도 횟수 검증 (5회 초과 시 삭제 및 실패)
 - PasswordEncoder로 코드 해시 비교
 - 실패 시 시도 횟수 1 증가
+- validateCode() 메서드로 검증 로직 공통화
 
 ---
 
-#### 비밀번호 재설정
+#### 1.7 비밀번호 재설정
 
 **Endpoint**
 ```
@@ -243,13 +341,13 @@ POST /api/reset
 **Request Body**
 ```json
 {
-  "email": "test@example.com",
+  "email": "user@example.com",
   "code": "123456",
   "pw": "newPassword123"
 }
 ```
 
-**Response**
+**Response (성공)**
 ```json
 {
   "result": true,
@@ -258,14 +356,25 @@ POST /api/reset
 }
 ```
 
+**Response (실패)**
+```json
+{
+  "result": false,
+  "message": "인증코드가 일치하지 않습니다.",
+  "data": null
+}
+```
+
 **Status Code**
-- `200` : 비밀번호 변경 성공
-- `400` : 코드 불일치 또는 사용자 없음
+- `200`: 비밀번호 변경 성공
+- `400`: 사용자 없음
+- `409`: 코드 불일치 또는 만료
 
 **구현 내용**
 - 코드 검증 (만료시간, 시도횟수, 일치여부)
 - 새 비밀번호를 BCrypt로 암호화하여 업데이트
 - 재설정 요청 정보 DB에서 삭제 (1회용)
+- validateCode() 메서드 재사용으로 검증 로직 통일
 
 ---
 
@@ -274,14 +383,17 @@ POST /api/reset
 - JWT: HS256 알고리즘, 1시간 만료
 - OTP: 6자리, 10분 만료, 5회 시도 제한
 - 모든 인증 정보는 암호화하여 저장
+- 예외 처리 통일 (IllegalArgumentException, IllegalStateException)
 
 ---
 
-### 일정 관리
+### 2. 일정 관리 (Plan)
+
+**공통 헤더**: `Authorization: Bearer {token}`
 
 ---
 
-#### 일정 등록
+#### 2.1 일정 등록
 
 **Endpoint**
 ```
@@ -298,10 +410,10 @@ Authorization: Bearer {token}
 {
   "title": "회의",
   "content": "팀 미팅",
-  "start_date": "2026-01-10T09:00:00",
-  "end_date": "2026-01-10T10:00:00",
-  "start_time": "09:00:00",
-  "end_time": "10:00:00",
+  "start_date": "2025-01-20T14:00:00",
+  "end_date": "2025-01-20T15:00:00",
+  "start_time": "14:00:00",
+  "end_time": "15:00:00",
   "color": 1
 }
 ```
@@ -309,31 +421,35 @@ Authorization: Bearer {token}
 **Response**
 ```json
 {
-  "s_id": 1,
-  "email": "test@example.com",
-  "title": "회의",
-  "content": "팀 미팅",
-  "start_date": "2026-01-10T09:00:00",
-  "end_date": "2026-01-10T10:00:00",
-  "start_time": "09:00:00",
-  "end_time": "10:00:00",
-  "color": 1
+  "result": true,
+  "message": "일정 등록 성공",
+  "data": {
+    "s_id": 1,
+    "email": "user@example.com",
+    "title": "회의",
+    "content": "팀 미팅",
+    "start_date": "2025-01-20T14:00:00",
+    "end_date": "2025-01-20T15:00:00",
+    "start_time": "14:00:00",
+    "end_time": "15:00:00",
+    "color": 1
+  }
 }
 ```
 
 **Status Code**
-- `200` : 일정 등록 성공
-- `401` : 토큰 유효하지 않음
-- `500` : 서버 오류
+- `200`: 일정 등록 성공
+- `400`: 토큰 없음 또는 유효하지 않음
 
 **구현 내용**
 - JWT 토큰에서 사용자 이메일 추출
 - start_date, end_date, start_time, end_time이 null이면 현재 시간으로 설정
-- 일정 정보를 DB에 저장 후 저장된 엔티티 반환
+- 일정 정보를 DB에 저장 후 PlanDTO로 변환하여 반환
+- 등록된 일정을 즉시 프론트엔드에서 사용 가능
 
 ---
 
-#### 특정 날짜 일정 제목 조회
+#### 2.2 특정 날짜 일정 제목 조회
 
 **Endpoint**
 ```
@@ -347,31 +463,32 @@ Authorization: Bearer {token}
 
 **Request**
 ```
-GET /api/title?date=2026-01-10
+GET /api/title?date=2025-01-20
 ```
 
 **Response**
 ```json
-[
-  "회의",
-  "점심 약속",
-  "운동"
-]
+{
+  "result": true,
+  "message": "조회 성공",
+  "data": ["회의", "점심약속", "운동"]
+}
 ```
 
 **Status Code**
-- `200` : 조회 성공
-- `401` : 토큰 유효하지 않음
+- `200`: 조회 성공
+- `400`: 토큰 없음 또는 유효하지 않음
 
 **구현 내용**
 - JWT 토큰에서 사용자 이메일 추출
 - 해당 날짜의 00:00:00 ~ 23:59:59 범위로 일정 조회
 - start_date <= dayEnd AND end_date >= dayStart 조건으로 겹치는 일정 검색
 - 일정 제목만 리스트로 반환
+- @DateTimeFormat으로 날짜 파라미터 자동 변환
 
 ---
 
-#### 날짜 범위 일정 조회
+#### 2.3 날짜 범위 일정 조회
 
 **Endpoint**
 ```
@@ -385,40 +502,45 @@ Authorization: Bearer {token}
 
 **Request**
 ```
-GET /api/range?start=2026-01-11&end=2026-01-11
+GET /api/range?start=2025-01-01&end=2025-01-31
 ```
 
 **Response**
 ```json
-[
-  {
-    "s_id": 1,
-    "email": "test@example.com",
-    "title": "회의",
-    "content": "팀 미팅",
-    "start_date": "2026-01-10T00:00:00",
-    "end_date": "2026-01-12T123:59:59",
-    "start_time": "00:00:00",
-    "end_time": "23:59:59",
-    "color": 1
-  }
-]
+{
+  "result": true,
+  "message": "조회 성공",
+  "data": [
+    {
+      "s_id": 1,
+      "email": "user@example.com",
+      "title": "회의",
+      "content": "팀 미팅",
+      "start_date": "2025-01-20T14:00:00",
+      "end_date": "2025-01-20T15:00:00",
+      "start_time": "14:00:00",
+      "end_time": "15:00:00",
+      "color": 1
+    }
+  ]
+}
 ```
 
 **Status Code**
-- `200` : 조회 성공
-- `401` : 토큰 유효하지 않음
+- `200`: 조회 성공
+- `400`: 토큰 없음 또는 유효하지 않음
 
 **구현 내용**
 - JWT 토큰에서 사용자 이메일 추출
 - 시작일 00:00:00 ~ 종료일 23:59:59 범위로 일정 조회
 - start_date <= rangeEnd AND end_date >= rangeStart 조건으로 겹치는 일정 검색
-- (예:1/10~1/12일정은 1/11 조회 시에도 표시)
+- 예: 1/10~1/12 일정은 1/11 조회 시에도 표시됨
 - start_date 오름차순 정렬하여 반환
+- Entity → DTO 변환하여 안전한 데이터 전송
 
 ---
 
-#### 일정 상세 조회
+#### 2.4 일정 상세 조회
 
 **Endpoint**
 ```
@@ -430,33 +552,47 @@ GET /api/{s_id}
 GET /api/1
 ```
 
-**Response**
+**Response (성공)**
 ```json
 {
-  "s_id": 1,
-  "email": "test@example.com",
-  "title": "회의",
-  "content": "팀 미팅",
-  "start_date": "2026-01-10T09:00:00",
-  "end_date": "2026-01-10T10:00:00",
-  "start_time": "09:00:00",
-  "end_time": "10:00:00",
-  "color": 1
+  "result": true,
+  "message": "조회 성공",
+  "data": {
+    "s_id": 1,
+    "email": "user@example.com",
+    "title": "회의",
+    "content": "팀 미팅",
+    "start_date": "2025-01-20T14:00:00",
+    "end_date": "2025-01-20T15:00:00",
+    "start_time": "14:00:00",
+    "end_time": "15:00:00",
+    "color": 1
+  }
+}
+```
+
+**Response (실패)**
+```json
+{
+  "result": false,
+  "message": "일정을 찾을 수 없습니다.",
+  "data": null
 }
 ```
 
 **Status Code**
-- `200` : 조회 성공
-- `404` : 일정을 찾을 수 없음
+- `200`: 조회 성공
+- `404`: 일정을 찾을 수 없음
 
 **구현 내용**
 - s_id로 일정 조회
 - 존재하지 않으면 404 반환
-- 인증 없이 조회 가능
+- 인증 없이 조회 가능 (공개 API)
+- Entity → DTO 변환하여 반환
 
 ---
 
-#### 일정 수정
+#### 2.5 일정 수정
 
 **Endpoint**
 ```
@@ -472,42 +608,63 @@ Authorization: Bearer {token}
 ```json
 {
   "title": "회의 변경",
-  "content": "팀 미팅 시간 변경",
-  "start_date": "2026-01-10T10:00:00",
-  "end_date": "2026-01-10T11:00:00"
+  "content": "팀 미팅 변경"
 }
 ```
 
-**Response**
+**Response (성공)**
 ```json
 {
-  "s_id": 1,
-  "email": "test@example.com",
-  "title": "회의 변경",
-  "content": "팀 미팅 시간 변경",
-  "start_date": "2026-01-10T10:00:00",
-  "end_date": "2026-01-10T11:00:00",
-  "start_time": "09:00:00",
-  "end_time": "10:00:00",
-  "color": 1
+  "result": true,
+  "message": "수정 성공",
+  "data": {
+    "s_id": 1,
+    "email": "user@example.com",
+    "title": "회의 변경",
+    "content": "팀 미팅 변경",
+    "start_date": "2025-01-20T14:00:00",
+    "end_date": "2025-01-20T15:00:00",
+    "start_time": "14:00:00",
+    "end_time": "15:00:00",
+    "color": 1
+  }
+}
+```
+
+**Response (실패 - 권한 없음)**
+```json
+{
+  "result": false,
+  "message": "본인의 일정만 수정할 수 있습니다",
+  "data": null
+}
+```
+
+**Response (실패 - 일정 없음)**
+```json
+{
+  "result": false,
+  "message": "존재하지 않는 일정입니다.",
+  "data": null
 }
 ```
 
 **Status Code**
-- `200` : 수정 성공
-- `401` : 토큰 유효하지 않음
-- `403` : 본인 일정이 아님
-- `404` : 일정을 찾을 수 없음
+- `200`: 수정 성공
+- `400`: 토큰 없음 또는 일정 없음
+- `409`: 본인 일정이 아님
 
 **구현 내용**
 - JWT 토큰에서 사용자 이메일 추출
 - s_id로 일정 조회 후 본인 일정인지 확인
 - 요청 본문에 포함된 필드만 부분 수정 (null이 아닌 값만)
 - @Transactional로 변경 감지 자동 반영
+- IllegalArgumentException: 일정 없음
+- IllegalStateException: 권한 없음
 
 ---
 
-#### 일정 삭제
+#### 2.6 일정 삭제
 
 **Endpoint**
 ```
@@ -524,22 +681,35 @@ Authorization: Bearer {token}
 DELETE /api/deleteplan/1
 ```
 
-**Response**
+**Response (성공)**
 ```json
-"삭제 완료"
+{
+  "result": true,
+  "message": "삭제 성공",
+  "data": null
+}
+```
+
+**Response (실패 - 권한 없음)**
+```json
+{
+  "result": false,
+  "message": "본인의 일정만 삭제할 수 있습니다.",
+  "data": null
+}
 ```
 
 **Status Code**
-- `200` : 삭제 성공
-- `401` : 토큰 유효하지 않음
-- `403` : 본인 일정이 아님
-- `404` : 일정을 찾을 수 없음
+- `200`: 삭제 성공
+- `400`: 토큰 없음 또는 일정 없음
+- `409`: 본인 일정이 아님
 
 **구현 내용**
 - JWT 토큰에서 사용자 이메일 추출
 - s_id로 일정 조회 후 본인 일정인지 확인
 - 본인 일정만 삭제 가능하도록 권한 검증
 - @Transactional로 삭제 처리
+- 예외 처리: IllegalArgumentException (일정 없음), IllegalStateException (권한 없음)
 
 ---
 
@@ -547,15 +717,18 @@ DELETE /api/deleteplan/1
 - 모든 일정 관리 API는 JWT 토큰 필수 (일정 상세 조회 제외)
 - Authorization 헤더에서 Bearer 토큰 추출
 - 토큰에서 이메일 추출하여 본인 확인
-- 유효하지 않은 토큰 시 401 Unauthorized 반환
+- 유효하지 않은 토큰 시 400 Bad Request 반환
+- emailFromAuth() 메서드로 토큰 검증 로직 공통화
 
 ---
 
-### 친구 관리
+### 3. 친구 관리 (Friend)
+
+**공통 헤더**: `Authorization: Bearer {token}`
 
 ---
 
-#### 친구 검색
+#### 3.1 친구 검색
 
 **Endpoint**
 ```
@@ -569,36 +742,41 @@ Authorization: Bearer {token}
 
 **Request**
 ```
-GET /api/searchfriend?q=test
+GET /api/searchfriend?q=user
 ```
 
 **Response**
 ```json
-[
-  {
-    "email": "test@example.com",
-    "nickname": "홍길동"
-  },
-  {
-    "email": "test2@example.com",
-    "nickname": "김철수"
-  }
-]
+{
+  "result": true,
+  "message": "검색 성공",
+  "data": [
+    {
+      "email": "user2@example.com",
+      "nickname": "사용자2"
+    },
+    {
+      "email": "user3@example.com",
+      "nickname": "사용자3"
+    }
+  ]
+}
 ```
 
 **Status Code**
-- `200` : 검색 성공
-- `401` : 토큰 유효하지 않음
+- `200`: 검색 성공
+- `400`: 토큰 없음 또는 유효하지 않음
 
 **구현 내용**
 - JWT 토큰에서 사용자 이메일 추출
 - 검색어가 포함된 이메일을 가진 사용자 최대 10명 조회
 - 본인과 이미 친구인 사람은 제외
-- 이메일과 닉네임만 반환
+- Stream API로 필터링 처리
+- 이메일과 닉네임만 UserSummary DTO로 반환
 
 ---
 
-#### 친구 추가
+#### 3.2 친구 추가
 
 **Endpoint**
 ```
@@ -617,27 +795,58 @@ Authorization: Bearer {token}
 }
 ```
 
-**Response**
+**Response (성공)**
 ```json
-"친구추가 완료"
+{
+  "result": true,
+  "message": "친구추가 완료",
+  "data": null
+}
+```
+
+**Response (실패 - 본인 추가)**
+```json
+{
+  "result": false,
+  "message": "본인은 친구로 추가할 수 없습니다",
+  "data": null
+}
+```
+
+**Response (실패 - 존재하지 않는 사용자)**
+```json
+{
+  "result": false,
+  "message": "존재하지 않는 사용자입니다",
+  "data": null
+}
+```
+
+**Response (실패 - 이미 친구)**
+```json
+{
+  "result": false,
+  "message": "이미 친구입니다",
+  "data": null
+}
 ```
 
 **Status Code**
-- `200` : 친구 추가 성공
-- `400` : 본인 추가 시도 또는 존재하지 않는 사용자
-- `401` : 토큰 유효하지 않음
-- `409` : 이미 친구 관계
+- `200`: 친구 추가 성공
+- `400`: 본인 추가 시도 또는 존재하지 않는 사용자
+- `409`: 이미 친구 관계
 
 **구현 내용**
 - JWT 토큰에서 사용자 이메일 추출
-- 본인을 친구로 추가하는 것 방지
-- 대상 사용자 존재 여부 확인
-- 이미 친구 관계인지 검증
+- 본인을 친구로 추가하는 것 방지 (IllegalArgumentException)
+- 대상 사용자 존재 여부 확인 (IllegalArgumentException)
+- 이미 친구 관계인지 검증 (IllegalStateException)
 - 두 이메일을 정렬하여 중복 방지 (A-B와 B-A를 같은 관계로 처리)
+- Comparator.naturalOrder()로 이메일 정렬 후 저장
 
 ---
 
-#### 친구 목록 조회
+#### 3.3 친구 목록 조회
 
 **Endpoint**
 ```
@@ -651,30 +860,35 @@ Authorization: Bearer {token}
 
 **Response**
 ```json
-[
-  {
-    "email": "friend1@example.com",
-    "nickname": "친구1"
-  },
-  {
-    "email": "friend2@example.com",
-    "nickname": "친구2"
-  }
-]
+{
+  "result": true,
+  "message": "조회 성공",
+  "data": [
+    {
+      "email": "friend1@example.com",
+      "nickname": "친구1"
+    },
+    {
+      "email": "friend2@example.com",
+      "nickname": "친구2"
+    }
+  ]
+}
 ```
 
 **Status Code**
-- `200` : 조회 성공
-- `401` : 토큰 유효하지 않음
+- `200`: 조회 성공
+- `400`: 토큰 없음 또는 유효하지 않음
 
 **구현 내용**
 - JWT 토큰에서 사용자 이메일 추출
-- 친구 테이블에서 나와 연결된 모든 이메일 조회
-- 사용자 정보(이메일, 닉네임) 조회하여 반환
+- 친구 테이블에서 나와 연결된 모든 이메일 조회 (Native Query)
+- 사용자 정보(이메일, 닉네임) 조회하여 UserSummary DTO로 반환
+- Stream API로 DTO 변환 처리
 
 ---
 
-#### 친구 삭제
+#### 3.4 친구 삭제
 
 **Endpoint**
 ```
@@ -695,21 +909,27 @@ Authorization: Bearer {token}
 
 **Response**
 ```json
-"친구 삭제 완료"
+{
+  "result": true,
+  "message": "친구 삭제 완료",
+  "data": null
+}
 ```
 
 **Status Code**
-- `200` : 삭제 성공
-- `401` : 토큰 유효하지 않음
+- `200`: 삭제 성공
+- `400`: 토큰 없음 또는 유효하지 않음
 
 **구현 내용**
 - JWT 토큰에서 사용자 이메일 추출
-- 본인을 삭제 대상으로 하면 무시
+- 본인을 삭제 대상으로 하면 무시 (조기 종료)
 - 친구 관계 양방향 모두 삭제 (A-B, B-A 순서 무관)
+- @Modifying, @Transactional로 삭제 쿼리 실행
+- deletePair() 메서드로 양방향 삭제 처리
 
 ---
 
-#### 친구 월별 일정 조회
+#### 3.5 친구 월별 일정 조회
 
 **Endpoint**
 ```
@@ -723,37 +943,51 @@ Authorization: Bearer {token}
 
 **Request**
 ```
-GET /api/friend/calendar?friendEmail=friend@example.com&year=2026&month=1
+GET /api/friend/calendar?friendEmail=friend@example.com&year=2025&month=1
 ```
 
-**Response**
+**Response (성공)**
 ```json
-[
-  {
-    "s_id": 1,
-    "email": "friend@example.com",
-    "title": "회의",
-    "content": "팀 미팅",
-    "start_date": "2026-01-10T09:00:00",
-    "end_date": "2026-01-10T10:00:00",
-    "start_time": "09:00:00",
-    "end_time": "10:00:00",
-    "color": 1
-  }
-]
+{
+  "result": true,
+  "message": "조회 성공",
+  "data": [
+    {
+      "s_id": 10,
+      "email": "friend@example.com",
+      "title": "친구 일정",
+      "content": "친구의 일정",
+      "start_date": "2025-01-15T10:00:00",
+      "end_date": "2025-01-15T11:00:00",
+      "start_time": "10:00:00",
+      "end_time": "11:00:00",
+      "color": 2
+    }
+  ]
+}
+```
+
+**Response (실패 - 권한 없음)**
+```json
+{
+  "result": false,
+  "message": "친구만 열람할 수 있습니다",
+  "data": null
+}
 ```
 
 **Status Code**
-- `200` : 조회 성공
-- `401` : 토큰 유효하지 않음
-- `403` : 친구 관계가 아님
-- `500` : 서버 오류
+- `200`: 조회 성공
+- `400`: 토큰 없음 또는 유효하지 않음
+- `409`: 친구 관계가 아님
 
 **구현 내용**
 - JWT 토큰에서 사용자 이메일 추출
 - 본인 일정이거나 친구 관계인 경우만 조회 가능
+- isFriend() 메서드로 친구 관계 검증
 - 해당 월의 1일 00:00:00 ~ 말일 23:59:59 범위로 일정 조회
-- 친구가 아닌 경우 403 Forbidden 반환
+- 친구가 아닌 경우 IllegalStateException 발생
+- Entity → DTO 변환하여 반환
 
 ---
 
@@ -761,8 +995,70 @@ GET /api/friend/calendar?friendEmail=friend@example.com&year=2026&month=1
 - 친구 관계는 양방향으로 저장 (A-B 관계 저장 시 B-A도 동일하게 처리)
 - 두 이메일을 정렬하여 저장함으로써 중복 방지
 - 친구 삭제 시 양방향 모두 삭제
+- 복합키 (FriendId) 사용으로 DB 레벨 중복 방지
+- @Embeddable, @EmbeddedId로 복합키 구현
 
 ---
+
+### 4. 에러 응답
+
+모든 에러는 다음과 같은 형식으로 반환됩니다:
+```json
+{
+  "result": false,
+  "message": "에러 메시지",
+  "data": null
+}
+```
+
+**GlobalExceptionHandler 처리:**
+- `IllegalArgumentException` → 400 Bad Request (잘못된 요청)
+- `IllegalStateException` → 409 Conflict (상태 문제: 중복, 권한)
+- `Exception` → 500 Internal Server Error (기타 오류)
+
+**주요 에러 메시지:**
+
+**인증/토큰 관련:**
+- `"토큰이 없습니다"` - Authorization 헤더 누락
+- `"유효하지 않은 토큰입니다"` - 잘못된 토큰
+
+**회원 관리:**
+- `"중복된 이메일"` - 이메일 중복
+- `"중복된 닉네임"` - 닉네임 중복
+- `"이메일 또는 비밀번호 불일치"` - 로그인 실패
+- `"코드가 만료되었습니다."` - OTP 만료
+- `"시도 횟수를 초과했습니다."` - OTP 시도 초과
+- `"인증코드가 일치하지 않습니다."` - OTP 불일치
+
+**일정 관리:**
+- `"존재하지 않는 일정입니다"` / `"존재하지 않는 일정입니다."` - 일정 없음
+- `"본인의 일정만 수정할 수 있습니다"` - 수정 권한 없음
+- `"본인의 일정만 삭제할 수 있습니다."` - 삭제 권한 없음
+
+**친구 관리:**
+- `"본인은 친구로 추가할 수 없습니다"` - 본인 추가 시도
+- `"존재하지 않는 사용자입니다"` - 사용자 없음
+- `"이미 친구입니다"` - 친구 관계 중복
+- `"친구만 열람할 수 있습니다"` - 친구 일정 조회 권한 없음
+
+---
+
+### 5. 테스트
+
+**단위 테스트 (JUnit 5 + Mockito):**
+- UserServiceTest: 회원가입 성공/실패 케이스 검증
+- PlanServiceTest: 일정 등록, 수정 권한 검증
+- FriendServiceTest: 친구 추가 성공/실패 케이스 검증
+
+**실행 방법:**
+```bash
+./gradlew test
+```
+
+**테스트 커버리지:**
+- 총 9개 테스트 (User 3개, Plan 3개, Friend 3개)
+- Mock 객체를 활용한 격리된 단위 테스트
+- 성공/실패 케이스 모두 검증
 ## AWS 아키텍처
 
 ### 인프라 구성
