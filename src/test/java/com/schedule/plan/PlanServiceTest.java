@@ -16,10 +16,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.schedule.common.AuthUtil;
 import com.schedule.plan.PlanDTO;
 import com.schedule.plan.PlanEntity;
 import com.schedule.plan.PlanRepository;
-import com.schedule.user.security.TokenProvider;
+
 
 @ExtendWith(MockitoExtension.class)
 public class PlanServiceTest {
@@ -27,7 +28,7 @@ public class PlanServiceTest {
     private PlanRepository planRepository;
     
     @Mock
-    private TokenProvider tokenProvider;
+    private AuthUtil authUtil;
     
     @InjectMocks
     private PlanService planService;
@@ -70,7 +71,7 @@ public class PlanServiceTest {
     @DisplayName("일정 등록 성공")
     void 일정_등록_성공() {
         // given
-        when(tokenProvider.validateJwt(anyString())).thenReturn(userEmail);
+        when(authUtil.extractEmail(anyString())).thenReturn(userEmail);
         when(planRepository.save(any(PlanEntity.class))).thenReturn(planEntity);
         
         // when
@@ -86,7 +87,7 @@ public class PlanServiceTest {
     @DisplayName("일정 수정 성공 - 본인 확인")
     void 일정_수정_성공_본인확인() {
         // given
-        when(tokenProvider.validateJwt(anyString())).thenReturn(userEmail);
+    	when(authUtil.extractEmail(anyString())).thenReturn(userEmail);
         when(planRepository.findById(1)).thenReturn(Optional.of(planEntity));
         
         PlanDTO updateDto = PlanDTO.builder()
@@ -106,7 +107,7 @@ public class PlanServiceTest {
     void 일정_수정_실패_권한없음() {
         // given
         String otherUserEmail = "other@test.com";
-        when(tokenProvider.validateJwt(anyString())).thenReturn(otherUserEmail);
+        when(authUtil.extractEmail(anyString())).thenReturn(otherUserEmail);
         when(planRepository.findById(1)).thenReturn(Optional.of(planEntity));
         
         PlanDTO updateDto = PlanDTO.builder()

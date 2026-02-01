@@ -8,7 +8,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.schedule.user.security.TokenProvider;
+import com.schedule.common.AuthUtil;
 
 import lombok.RequiredArgsConstructor;
 
@@ -16,28 +16,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PlanService {
 	private final PlanRepository planRepository;
-	private final TokenProvider tokenProvider;
+	private final AuthUtil authUtil;
 
-	//토큰 추출
-	private String emailFromAuth(String token) {
-
-		if (token == null || token.isBlank()) {
-	        throw new IllegalArgumentException("토큰이 없습니다");
-	    }
-
-		String jwt = token.startsWith("Bearer ") ? token.substring(7) : token; // validateJwt에서 email 추출
-	    String email = tokenProvider.validateJwt(jwt);
-
-	    if (email == null) {
-			throw new IllegalArgumentException("유효하지 않은 토큰입니다.");
-		}
-        return email;
-	}//emailFromAuth
 
 	//새로운 스케줄 저장
 	public PlanDTO savePlan(PlanDTO planDto,String token){
 
-	   planDto.setEmail(emailFromAuth(token));
+	   planDto.setEmail(authUtil.extractEmail(token));
 
 	   if(planDto.getStart_date() == null) {
 		   planDto.setStart_date(LocalDateTime.now());
@@ -59,7 +44,7 @@ public class PlanService {
 	//특정 날짜의 일정 제목 목록 조회(하루의 시작/끝 시간을 계산해서 쿼리 범위 설정)
 	public List<String> getTitlesOfDay(LocalDate day , String token){
 
-		String email = emailFromAuth(token);
+		String email = authUtil.extractEmail(token);
 		LocalDateTime dayStart = day.atStartOfDay();
 		LocalDateTime dayEnd = day.atTime(LocalTime.MAX);
 
@@ -72,7 +57,7 @@ public class PlanService {
 	//날짜 범위 일정 조회
 	public List<PlanDTO> getPlansOfRange(LocalDate start,LocalDate end,String token){
 
-		String email = emailFromAuth(token);
+		String email = authUtil.extractEmail(token);
 		LocalDateTime rangeStart = start.atStartOfDay();
 		LocalDateTime rangeEnd = end.atTime(23, 59, 59);
 
@@ -86,7 +71,7 @@ public class PlanService {
 	@Transactional
 	public PlanDTO updatePlan(String token,int s_id,PlanDTO planDto) {
 
-		String me = emailFromAuth(token);
+		String me = authUtil.extractEmail(token);
 
 		PlanEntity planEntity = planRepository.findById(s_id)
 				.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 일정입니다."));
@@ -122,7 +107,7 @@ public class PlanService {
 	@Transactional
 	public void deletePlan(String token,int s_id) {
 
-		String me = emailFromAuth(token);
+		String me = authUtil.extractEmail(token);
 
 		PlanEntity planEntity = planRepository.findById(s_id)
 				.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 일정입니다"));
