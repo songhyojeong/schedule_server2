@@ -16,8 +16,9 @@ import com.schedule.plan.PlanRepository;
 import com.schedule.user.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class FriendService {
@@ -32,6 +33,8 @@ public class FriendService {
 	@Transactional(readOnly = true)
 	public List<UserSummary> searchCandidates (String token, String q){
 		String me = authUtil.extractEmail(token);
+		log.info("친구 검색: 요청자={}, 검색어={}", me, q);
+
 
 		var myFriends = friendRepository.findFriendEmailsOf(me); //내 친구 이메일 목록
 		var users = userRepository.findTop10ByEmailContainingIgnoreCase(q);
@@ -48,12 +51,15 @@ public class FriendService {
 	@Transactional
 	public void addfriend(String token,String targetEmail) {
 		String me = authUtil.extractEmail(token);
+		log.info("친구 추가 시도: 요청자={}, 대상={}", me, targetEmail);
 
 		if(me.equalsIgnoreCase(targetEmail)) {
+			log.warn("친구 추가 실패 - 본인 추가 시도: email={}", me);
 			throw new IllegalArgumentException("본인은 친구로 추가할 수 없습니다.");
 		}
 
 		if(!userRepository.existsByEmail(targetEmail)) {
+			log.warn("친구 추가 실패 - 존재하지 않는 사용자: 대상={}", targetEmail);
 			throw new IllegalArgumentException("존재하지 않는 사용자입니다.");
 		}
 
@@ -64,11 +70,13 @@ public class FriendService {
 
         //친구 검증
         if (friendRepository.existsPair(lo, hi)) {
+        	log.warn("친구 추가 실패 - 이미 친구: 요청자={}, 대상={}", me, targetEmail);
             throw new IllegalStateException("이미 친구입니다.");
         }
 
         // 저장 (정렬은 위에서 보정, 트리거 있으면 역순으로 넣어도 보정됨)
         friendRepository.save(FriendEntity.of(lo, hi));
+        log.info("친구 추가 완료: 요청자={}, 대상={}", me, targetEmail);
 
 	} //addfriend
 
@@ -76,6 +84,8 @@ public class FriendService {
 	@Transactional(readOnly = true)
 	public List<UserSummary> listFriends(String token) {
 		String me = authUtil.extractEmail(token);
+		log.info("친구 목록 조회: email={}", me);
+
 		var emails = friendRepository.findFriendEmailsOf(me);
 		var users = userRepository.findAllById(emails);
 
@@ -88,12 +98,15 @@ public class FriendService {
 	@Transactional
 	public void removeFriend(String token, String targetEmail) {
 		String me = authUtil.extractEmail(token);
+		log.info("친구 삭제 시도: 요청자={}, 대상={}", me, targetEmail);
 
 		if(me.equalsIgnoreCase(targetEmail)) {
+			log.info("친구 삭제 - 본인 삭제 요청 무시: email={}", me);
 			return;
 		}
 
 		friendRepository.deletePair(me, targetEmail);
+		log.info("친구 삭제 완료: 요청자={}, 대상={}", me, targetEmail);
 	}//removeFriend
 
 
@@ -108,6 +121,7 @@ public class FriendService {
 	@Transactional(readOnly = true)
 	public List<PlanDTO> getMonthly(String token,String friendEmail,int year,int month){
 		String me =authUtil.extractEmail(token);
+		log.info("친구 일정 조회: 요청자={}, 친구={}, 년월={}-{}", me, friendEmail, year, month);
 
 		//본인 아니면 친구 여부 확인(비친구 403)
 		if (!me.equalsIgnoreCase(friendEmail) && !isFriend(me, friendEmail, friendRepository)) {

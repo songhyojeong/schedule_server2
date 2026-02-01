@@ -18,7 +18,9 @@ import com.schedule.user.security.TokenProvider;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -51,12 +53,16 @@ public class UserService {
         String email = userDto.getEmail().trim().toLowerCase();
         String pw = userDto.getPw();
         String nickname = userDto.getNickname().trim();
+        
+        log.info("회원가입 시도:email={}",email);
 
         if (userRepository.existsById(email)) {
+        	log.warn("회원가입 실패 - 중복된 이메일: {}",email);
             throw new IllegalStateException("중복된 이메일");
         }
 
         if (userRepository.existsByNickname(nickname)) {
+        	log.warn("회원가입 실패 - 중복된 닉네임: {}",nickname);
         	throw new IllegalStateException("중복된 닉네임");
         }
 
@@ -65,6 +71,8 @@ public class UserService {
 
        UserEntity user = new UserEntity(userDto);
        userRepository.save(user);
+       
+       log.info("회원가입 성공:email={}",email);
     }
 
 
@@ -73,15 +81,23 @@ public class UserService {
 
         String email = loginDto.getEmail();
         String pw = loginDto.getPw();
+        
+        log.info("로그인 시도:email={}",email);
 
         UserEntity userEntity = userRepository.findByEmail(email)
-        		.orElseThrow(() -> new IllegalArgumentException("이메일 또는 비밀번호 불일치"));
+        		.orElseThrow(() -> {
+        			log.warn("로그인 실패 - 존재하지 않는 이메일: {}",email);	
+        			return new IllegalArgumentException("이메일 또는 비밀번호 불일치");
+        		});
 
         if(!passwordEncoder.matches(pw, userEntity.getPw())) {
+        	log.warn("로그인 실패 - 비밀번호 불일치: {}",email);
         	throw new IllegalArgumentException("이메일 또는 비밀번호 불일치");
         	}
 
         int exprTime = 3600;
+        log.info("로그인 성공:email={}",email);
+        
         return tokenProvider.createJwt(userEntity.getEmail(), exprTime);
 
 
@@ -123,7 +139,11 @@ public class UserService {
 
             forgetPwRepo.save(fge);
             sendResetCode(email, code);
+            log.info("인증코드 발송 완료: email={}", email);
+        } else {
+            log.info("비밀번호 재설정 요청 - 존재하지 않는 이메일 (보안상 동일 응답): email={}", email);
         }
+        
     }
     //공통 코드 검증
     private void validateCode(ForgetPwEntity fge, String code) {
@@ -158,6 +178,9 @@ public class UserService {
     // 비밀번호 재설정
     @Transactional
     public void reset(String email, String code, String pw) {
+    	
+    	log.info("비밀번호 재설정 시도: email={}", email);
+
 
     	ForgetPwEntity fge = forgetPwRepo.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 인증 요청입니다."));
@@ -171,6 +194,8 @@ public class UserService {
         userRepository.save(user);
 
         forgetPwRepo.delete(fge);
+        
+        log.info("비밀번호 재설정 완료: email={}", email);
         }
 
 }

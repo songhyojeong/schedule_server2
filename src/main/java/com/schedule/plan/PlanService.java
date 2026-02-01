@@ -11,7 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.schedule.common.AuthUtil;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlanService {
@@ -21,8 +23,11 @@ public class PlanService {
 
 	//새로운 스케줄 저장
 	public PlanDTO savePlan(PlanDTO planDto,String token){
-
-	   planDto.setEmail(authUtil.extractEmail(token));
+		String email = authUtil.extractEmail(token);
+		log.info("일정 등록 시도: email={}, title={}", email, planDto.getTitle());
+		
+	   planDto.setEmail(email);
+	   
 
 	   if(planDto.getStart_date() == null) {
 		   planDto.setStart_date(LocalDateTime.now());
@@ -38,6 +43,8 @@ public class PlanService {
 	   }
 
 	   PlanEntity saved = planRepository.save(new PlanEntity(planDto));
+	   log.info("일정 등록 완료: s_id={}, email={}", saved.getS_id(), email);
+	   
 	   return new PlanDTO(saved);
 	}//saveplan
 
@@ -45,26 +52,36 @@ public class PlanService {
 	public List<String> getTitlesOfDay(LocalDate day , String token){
 
 		String email = authUtil.extractEmail(token);
+		log.info("특정 날짜 일정 조회: email={}, date={}", email, day);
+		
 		LocalDateTime dayStart = day.atStartOfDay();
 		LocalDateTime dayEnd = day.atTime(LocalTime.MAX);
 
-		return planRepository.findByPlanOfDay(email, dayStart, dayEnd)
-				.stream()
-				.map(PlanEntity::getTitle)
-				.toList();
+		List<String> titles = planRepository.findByPlanOfDay(email, dayStart, dayEnd)
+	            .stream()
+	            .map(PlanEntity::getTitle)
+	            .toList();
+	    
+	    log.info("특정 날짜 일정 조회 완료: email={}, 조회 건수={}", email, titles.size());
+	    return titles;
 	}//getTitlesOfDay
 
 	//날짜 범위 일정 조회
 	public List<PlanDTO> getPlansOfRange(LocalDate start,LocalDate end,String token){
 
 		String email = authUtil.extractEmail(token);
+		log.info("날짜 범위 일정 조회: email={}, start={}, end={}", email, start, end);
+		
 		LocalDateTime rangeStart = start.atStartOfDay();
 		LocalDateTime rangeEnd = end.atTime(23, 59, 59);
 
-		return planRepository.findPlansOverlapping(email, rangeStart, rangeEnd)
-				.stream()
-				.map(PlanDTO::new)
-				.toList();
+		 List<PlanDTO> plans = planRepository.findPlansOverlapping(email, rangeStart, rangeEnd)
+		            .stream()
+		            .map(PlanDTO::new)
+		            .toList();
+		    
+		    log.info("날짜 범위 일정 조회 완료: email={}, 조회 건수={}", email, plans.size());
+		    return plans;
 	}//getPlansOfRange
 
 	//일정 수정
@@ -72,11 +89,16 @@ public class PlanService {
 	public PlanDTO updatePlan(String token,int s_id,PlanDTO planDto) {
 
 		String me = authUtil.extractEmail(token);
+		log.info("일정 수정 시도: s_id={}, email={}", s_id, me);
 
 		PlanEntity planEntity = planRepository.findById(s_id)
-				.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 일정입니다."));
+				.orElseThrow(() -> {
+					log.warn("일정 수정 실패 - 존재하지 않는 일정: s_id={}", s_id);
+					return new IllegalArgumentException("존재하지 않는 일정입니다.");
+					});
 
 				if(!planEntity.getEmail().equalsIgnoreCase(me)) {
+					log.warn("일정 수정 실패 - 권한 없음: s_id={}, 요청자={}, 소유자={}", s_id, me, planEntity.getEmail());
 					throw new IllegalStateException("본인의 일정만 수정할 수 있습니다");
 				}
 
@@ -98,8 +120,9 @@ public class PlanService {
 			    if (planDto.getEnd_time() != null) {
 					planEntity.setEnd_time(planDto.getEnd_time());
 				}
-
-		   return new PlanDTO(planEntity);
+		
+			    log.info("일정 수정 완료: s_id={}", s_id);
+			    return new PlanDTO(planEntity);
 
 	}//updatedetail
 
@@ -108,15 +131,21 @@ public class PlanService {
 	public void deletePlan(String token,int s_id) {
 
 		String me = authUtil.extractEmail(token);
+		log.info("일정 삭제 시도: s_id={}, email={}", s_id, me);
 
 		PlanEntity planEntity = planRepository.findById(s_id)
-				.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 일정입니다"));
+				.orElseThrow(() -> {
+	                log.warn("일정 삭제 실패 - 존재하지 않는 일정: s_id={}", s_id);
+	                return new IllegalArgumentException("존재하지 않는 일정입니다");
+	            });
 
 		if (!planEntity.getEmail().equalsIgnoreCase(me)) {
+			log.warn("일정 삭제 실패 - 권한 없음: s_id={}, 요청자={}, 소유자={}", s_id, me, planEntity.getEmail());
 	        throw new IllegalStateException("본인의 일정만 삭제할 수 있습니다.");
 	    }
 
 		planRepository.delete(planEntity);
+		log.info("일정 삭제 완료: s_id={}", s_id);
 
 	}//deleteplan
 
