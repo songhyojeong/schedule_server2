@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +24,7 @@ public class PlanService {
 
 	//새로운 스케줄 저장
 	public PlanDTO savePlan(PlanDTO planDto,String token){
-		String email = authUtil.extractEmail(token);
+		String email = SecurityContextHolder.getContext().getAuthentication().getName();
 		log.info("일정 등록 시도: email={}, title={}", email, planDto.getTitle());
 		
 	   planDto.setEmail(email);
@@ -83,6 +84,26 @@ public class PlanService {
 		    log.info("날짜 범위 일정 조회 완료: email={}, 조회 건수={}", email, plans.size());
 		    return plans;
 	}//getPlansOfRange
+	
+	//일정 상세 조회
+	public PlanDTO getPlanDetail(int s_id, String token) {
+		
+		String me = authUtil.extractEmail(token);
+		log.info("일정 상세 조회: s_id={}, email={}", s_id, me);
+		
+		PlanEntity plan = planRepository.findById(s_id)
+				.orElseThrow(() -> {
+	                log.warn("일정 조회 실패 - 존재하지 않는 일정: s_id={}", s_id);
+	                return new IllegalArgumentException("존재하지 않는 일정입니다");
+	            });
+		
+		if(!plan.getEmail().equalsIgnoreCase(me)) {
+			log.warn("일정 조회 실패 - 권한 없음: s_id={}, 요청자={}", s_id, me);
+			throw new IllegalStateException("본인의 일정만 조회할 수 있습니다.");
+		}
+		
+		return new PlanDTO(plan);
+	}//getPlanDetail
 
 	//일정 수정
 	@Transactional

@@ -13,8 +13,8 @@ public class AuthUtil {
 	private final TokenProvider tokenProvider;
 	
 	public String extractEmail(String authHeader) {
-		if (authHeader == null == authHeader.isBlank()) {
-			throw new IllegalArgumentException("토큰이 없습니다.");
+		if (authHeader == null || authHeader.isBlank()) {
+		    throw new IllegalArgumentException("토큰이 없습니다.");
 		}
 		
 		String token = authHeader.startsWith("Bearer ")

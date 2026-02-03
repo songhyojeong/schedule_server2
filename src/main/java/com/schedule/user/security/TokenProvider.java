@@ -48,7 +48,6 @@ public class TokenProvider {
             signedJWT.sign(signer);
 
             String jwt = signedJWT.serialize();
-            System.out.println("생성된 JWT: " + jwt);
             return jwt;
 
         } catch (JOSEException e) {
@@ -60,12 +59,8 @@ public class TokenProvider {
     // JWT 검증 및 subject 추출
     public String validateJwt(String token) {
 
-    	 if ("test-token".equals(token)) {
-             return "user@test.com"; // 임시 이메일
-         }
-
+    	
         try {
-            System.out.println("검증할 토큰: " + token);
             SignedJWT signedJWT = SignedJWT.parse(token);
             JWSVerifier verifier = new MACVerifier(SECURITY_KEY.getBytes());
 

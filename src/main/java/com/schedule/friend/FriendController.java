@@ -17,9 +17,8 @@ import com.schedule.friend.dto.UserSummary;
 import com.schedule.plan.PlanDTO;
 import com.schedule.user.dto.ResponseDTO;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
-
 
 @RestController
 @RequiredArgsConstructor
@@ -43,7 +42,7 @@ public class FriendController {
 	//친구 추가
 	@PostMapping("/addfriend")
 	public ResponseEntity<ResponseDTO<?>> add(
-			@RequestBody TargetEmailRequest targetEmailRequest,
+			@Valid @RequestBody TargetEmailRequest targetEmailRequest,
 			@RequestHeader(value="Authorization") String token) {
 
 		friendService.addfriend(token, targetEmailRequest.getTargetEmail());

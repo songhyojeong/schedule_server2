@@ -11,13 +11,17 @@ import org.springframework.web.bind.annotation.RestController;
 import com.schedule.user.dto.ForgetPwDTO.ForgotRequest;
 import com.schedule.user.dto.ForgetPwDTO.ResetRequest;
 import com.schedule.user.dto.ForgetPwDTO.VerifyRequest;
+
+import jakarta.validation.Valid;
+
 import com.schedule.user.dto.LoginDTO;
 import com.schedule.user.dto.ResponseDTO;
 import com.schedule.user.dto.UserDTO;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
-
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
@@ -27,7 +31,7 @@ public class UserController {
 
 	//회원가입
 	@PostMapping("/signup")
-	public ResponseEntity<ResponseDTO<?>> signup(@RequestBody UserDTO requestBody) {
+	public ResponseEntity<ResponseDTO<?>> signup(@Valid @RequestBody UserDTO requestBody) {
 	    userService.signup(requestBody);
 	    return ResponseEntity.ok(ResponseDTO.setSuccess("회원가입 성공"));
 
@@ -70,7 +74,9 @@ public class UserController {
 	//로그인
 		@PostMapping("/login")
 		public ResponseEntity<ResponseDTO<String>> login(@RequestBody LoginDTO requestBody){
+			log.info("💬 로그인 요청 들어옴");
 			String token = userService.login(requestBody);
+			log.info("📤 컨트롤러에서 받은 토큰: {}", token);
 			return ResponseEntity.ok(ResponseDTO.setSuccessData("로그인 성공", token));
 
 		}//login

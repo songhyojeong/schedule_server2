@@ -111,10 +111,11 @@ public class FriendService {
 
 
 	//두 사용자가 친구인지 판단
-	private static boolean isFriend(String a,String b, FriendRepository repo) {
-		String A = a.trim().toLowerCase();
-		String B = b.trim().toLowerCase();
-		return repo.existsAnyDirection(A, B);
+	private boolean isFriend(String a,String b) {
+		return friendRepository.existsAnyDirection(
+				a.trim().toLowerCase(),
+				b.trim().toLowerCase()
+				);
 	}//isFriend
 
 	//친구 월별 일정 조회
@@ -124,7 +125,7 @@ public class FriendService {
 		log.info("친구 일정 조회: 요청자={}, 친구={}, 년월={}-{}", me, friendEmail, year, month);
 
 		//본인 아니면 친구 여부 확인(비친구 403)
-		if (!me.equalsIgnoreCase(friendEmail) && !isFriend(me, friendEmail, friendRepository)) {
+		if (!me.equalsIgnoreCase(friendEmail) && !isFriend(me, friendEmail)) {
 			throw new IllegalStateException("친구만 열람할 수 있습니다");
 		}
 

@@ -2,7 +2,6 @@
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -19,10 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.schedule.user.dto.ResponseDTO;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
-
-
 
 @RestController
 @RequiredArgsConstructor
@@ -30,12 +27,11 @@ import lombok.RequiredArgsConstructor;
 public class PlanController {
 
 	private final PlanService planService;
-	private final PlanRepository planRepository;
 
 
 	//스케줄 저장
 	@PostMapping("/saveschedule")
-	public ResponseEntity<ResponseDTO<PlanDTO>> save(@RequestBody PlanDTO planDto,
+	public ResponseEntity<ResponseDTO<PlanDTO>> save(@Valid @RequestBody PlanDTO planDto,
 								  @RequestHeader(value = "Authorization") String token) {
 
 		PlanDTO savedPlan = planService.savePlan(planDto, token);
@@ -67,19 +63,12 @@ public class PlanController {
 
 	//일정 상세 조회
 	@GetMapping("/{s_id}")
-	public ResponseEntity<ResponseDTO<PlanDTO>> detailPlan(@PathVariable("s_id") int s_id){
+	public ResponseEntity<ResponseDTO<PlanDTO>> detailPlan(@PathVariable("s_id") int s_id,
+														   @RequestHeader("Authorization") String token){
 
-		Optional<PlanEntity> detail = planRepository.findById(s_id);
-
-		if(detail.isPresent()) {
-			PlanDTO planDto = new PlanDTO(detail.get());
-			return ResponseEntity.ok(ResponseDTO.setSuccessData("조회 성공", planDto));
-		} else {
-			return ResponseEntity.status(404)
-					.body(ResponseDTO.setFailed("일정을 찾을 수 없습니다."));
-		}
-
-	}//detailPlan
+		PlanDTO plan = planService.getPlanDetail(s_id, token);
+		return ResponseEntity.ok(ResponseDTO.setSuccessData("조회 성공",plan));
+		}//detailPlan
 
 	//일정 수정
 	@PatchMapping("/updateplan/{s_id}")

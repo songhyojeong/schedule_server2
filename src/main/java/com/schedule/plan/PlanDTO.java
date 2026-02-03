@@ -3,6 +3,7 @@ package com.schedule.plan;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,7 +18,10 @@ public class PlanDTO {
 	private String email;
 	private LocalDateTime start_date;
 	private LocalDateTime end_date;
+	
+	@NotBlank(message = "제목은 필수입니다.")
 	private String title;
+	
 	private String content;
     private LocalTime start_time;
     private LocalTime end_time;

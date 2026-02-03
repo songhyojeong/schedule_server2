@@ -44,6 +44,9 @@ implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 // mysql
 implementation ("com.mysql:mysql-connector-j:9.0.0")
 
+runtimeOnly("org.mariadb.jdbc:mariadb-java-client")
+
+
 // (선택) 구글 API 실제 사용 시에만 유지
 // implementation("com.google.api-client:google-api-client:1.33.0")
 // implementation("com.google.oauth-client:google-oauth-client:1.34.1")

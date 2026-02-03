@@ -12,9 +12,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.schedule.friend.entity.FriendEntity;
+import com.schedule.plan.PlanRepository;
 import com.schedule.common.AuthUtil;
 import com.schedule.friend.FriendRepository;
 import com.schedule.user.repository.UserRepository;
+
+import java.util.List;
 
 @ExtendWith(MockitoExtension.class)
 class FriendServiceTest {
@@ -24,6 +27,9 @@ class FriendServiceTest {
 
     @Mock
     private UserRepository userRepository;
+    
+    @Mock
+    private PlanRepository planRepository;
 
     @Mock
     private AuthUtil authUtil;
@@ -93,5 +99,33 @@ class FriendServiceTest {
 
         // 저장 메서드가 호출되지 않았는지 검증
         verify(friendRepository, never()).save(any(FriendEntity.class));
+    }
+    
+    @Test
+    @DisplayName("친구 일정 조회 성공")
+    void 친구_일정조회_성공() {
+        // given
+        String friendEmail = "friend@test.com";
+        when(friendRepository.existsAnyDirection(anyString(), anyString())).thenReturn(true);
+        when(planRepository.findPlansOverlapping(anyString(), any(), any())).thenReturn(List.of());
+
+        // when & then
+        assertDoesNotThrow(() -> friendService.getMonthly(validToken, friendEmail, 2025, 2));
+    }
+
+    @Test
+    @DisplayName("친구 일정 조회 실패 - 친구 아님")
+    void 친구_일정조회_실패_친구아님() {
+        // given
+        String notFriendEmail = "stranger@test.com";
+        when(friendRepository.existsAnyDirection(anyString(), anyString())).thenReturn(false);
+
+        // when & then
+        IllegalStateException exception = assertThrows(
+            IllegalStateException.class,
+            () -> friendService.getMonthly(validToken, notFriendEmail, 2025, 2)
+        );
+
+        assertEquals("친구만 열람할 수 있습니다", exception.getMessage());
     }
 }

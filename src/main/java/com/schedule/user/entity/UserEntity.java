@@ -11,11 +11,13 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@EqualsAndHashCode(of = "email")
 @Builder
 @Data
 @Table( name = "user",
@@ -35,7 +37,7 @@ public class UserEntity {
 	@Column(name = "nickname" ,length=50, unique = true)
 	private String nickname;
 
-	@Column(length=50)
+	@Column(length=100)
 	private String token;
 
 	public UserEntity(UserDTO userDto) {

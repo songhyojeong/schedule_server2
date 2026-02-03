@@ -34,6 +34,7 @@ public class UserService {
 
     private static final int EXPIRE_MINUTES = 10;
     private static final int MAX_ATTEMPTS = 5;
+    private static final int TOKEN_EXPIRY_SECONDS = 3600;
 
 
     // 이메일 중복 체크
@@ -76,7 +77,8 @@ public class UserService {
     }
 
 
-    // 로그인
+    //로그인
+    @Transactional
     public String login(LoginDTO loginDto) {
 
         String email = loginDto.getEmail();
@@ -95,13 +97,9 @@ public class UserService {
         	throw new IllegalArgumentException("이메일 또는 비밀번호 불일치");
         	}
 
-        int exprTime = 3600;
         log.info("로그인 성공:email={}",email);
-        
-        return tokenProvider.createJwt(userEntity.getEmail(), exprTime);
 
-
-
+        return tokenProvider.createJwt(userEntity.getEmail(),TOKEN_EXPIRY_SECONDS);
     }
 
 
